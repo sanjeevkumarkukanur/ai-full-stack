@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/user-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  
+}
+
+//////////////////////////////////////////////////////
+// 🔐 USER (Auth Module)
+//////////////////////////////////////////////////////
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  chats     Chat[]
+
+  @@index([email])
+}
+
+//////////////////////////////////////////////////////
+// 💬 CHAT (Conversation History)
+//////////////////////////////////////////////////////
+
+model Chat {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String
+  response  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+//////////////////////////////////////////////////////
+// 📊 DOCUMENT (RAG / Vector Storage)
+//////////////////////////////////////////////////////
+
+model Document {
+  id        Int      @id @default(autoincrement())
+  content   String
+  embedding Json
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // ✅ FIXED relation (required)
+  collections CollectionDocument[]
+
+  @@index([createdAt])
+}
+
+//////////////////////////////////////////////////////
+// 🧠 COLLECTION (Grouping Documents)
+//////////////////////////////////////////////////////
+
+model Collection {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+
+  documents CollectionDocument[]
+
+  @@index([name])
+}
+
+//////////////////////////////////////////////////////
+// 🔗 MANY-TO-MANY JOIN TABLE
+//////////////////////////////////////////////////////
+
+model CollectionDocument {
+  id           Int @id @default(autoincrement())
+  collectionId Int
+  documentId   Int
+
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  document     Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, documentId])
+
+  @@index([collectionId])
+  @@index([documentId])
+}
